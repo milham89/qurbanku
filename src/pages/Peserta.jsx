@@ -38,7 +38,7 @@ export default function Peserta() {
   };
 
   const shareOptions = form.jenisQurban === 'Sapi'
-    ? ['1/7', '2/7', '3/7', '4/7', '5/7', '6/7', '1 Ekor']
+    ? ['1/7', '2/7', '3/7', '4/7', '5/7', '6/7', '7/7', '1 Ekor']
     : ['1 Ekor'];
 
   return (
