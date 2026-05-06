@@ -13,6 +13,8 @@ export default function Peserta() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [deleteError, setDeleteError] = useState('');
 
   const filtered = state.peserta.filter(p =>
     p.nama.toLowerCase().includes(search.toLowerCase()) ||
@@ -33,8 +35,10 @@ export default function Peserta() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Yakin ingin menghapus peserta ini?')) return;
-    await dbDeletePeserta(dispatch, id);
+    setDeleteError('');
+    const { error: err } = await dbDeletePeserta(dispatch, id);
+    if (err) setDeleteError('Gagal menghapus: ' + err.message);
+    setConfirmDeleteId(null);
   };
 
   const shareOptions = form.jenisQurban === 'Sapi'
@@ -71,6 +75,11 @@ export default function Peserta() {
               </tr>
             </thead>
             <tbody>
+              {deleteError && (
+                <tr><td colSpan={8}>
+                  <div className="login-error" style={{ margin: '8px 16px' }}>{deleteError}</div>
+                </td></tr>
+              )}
               {filtered.length === 0 ? (
                 <tr><td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
                   Tidak ada peserta
@@ -85,10 +94,21 @@ export default function Peserta() {
                   <td><span className="badge badge-info">{p.share}</span></td>
                   <td><span className="badge badge-success">{p.status}</span></td>
                   <td>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button className="btn btn-icon btn-sm" onClick={() => openEdit(p)}><Pencil size={14} /></button>
-                      <button className="btn btn-icon btn-sm" onClick={() => handleDelete(p.id)} style={{ color: 'var(--danger)' }}><Trash2 size={14} /></button>
-                    </div>
+                    {confirmDeleteId === p.id ? (
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Hapus?</span>
+                        <button className="btn btn-sm" style={{ background: 'var(--danger)', color: '#fff', padding: '3px 10px' }}
+                          onClick={() => handleDelete(p.id)}>Ya</button>
+                        <button className="btn btn-secondary btn-sm" style={{ padding: '3px 10px' }}
+                          onClick={() => setConfirmDeleteId(null)}>Batal</button>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button className="btn btn-icon btn-sm" onClick={() => openEdit(p)}><Pencil size={14} /></button>
+                        <button className="btn btn-icon btn-sm" onClick={() => { setConfirmDeleteId(p.id); setDeleteError(''); }}
+                          style={{ color: 'var(--danger)' }}><Trash2 size={14} /></button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}

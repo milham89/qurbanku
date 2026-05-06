@@ -17,6 +17,8 @@ export default function Hewan() {
   const [filterJenis, setFilterJenis] = useState('Semua');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [deleteError, setDeleteError] = useState('');
 
   const filtered = state.hewan.filter(h => {
     const matchSearch = h.nama.toLowerCase().includes(search.toLowerCase());
@@ -38,8 +40,12 @@ export default function Hewan() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Yakin ingin menghapus data hewan ini?')) return;
-    await dbDeleteHewan(dispatch, id);
+    setDeleteError('');
+    const { error: err } = await dbDeleteHewan(dispatch, id);
+    if (err) {
+      setDeleteError('Gagal menghapus: ' + err.message);
+    }
+    setConfirmDeleteId(null);
   };
 
   const totalHarga = state.hewan.reduce((s, h) => s + Number(h.harga), 0);
@@ -98,7 +104,12 @@ export default function Hewan() {
                 <th>Harga</th><th>Status</th><th>Keterangan</th><th>Aksi</th>
               </tr>
             </thead>
-            <tbody>
+          <tbody>
+              {deleteError && (
+                <tr><td colSpan={8}>
+                  <div className="login-error" style={{ margin: '8px 16px' }}>{deleteError}</div>
+                </td></tr>
+              )}
               {filtered.length === 0 ? (
                 <tr><td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
                   Tidak ada data hewan
@@ -113,10 +124,21 @@ export default function Hewan() {
                   <td><span className={`badge ${h.status === 'Tersedia' ? 'badge-success' : 'badge-warning'}`}>{h.status}</span></td>
                   <td style={{ color: 'var(--text-muted)', fontSize: '13px' }}>{h.keterangan}</td>
                   <td>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button className="btn btn-icon btn-sm" onClick={() => openEdit(h)}><Pencil size={14} /></button>
-                      <button className="btn btn-icon btn-sm" onClick={() => handleDelete(h.id)} style={{ color: 'var(--danger)' }}><Trash2 size={14} /></button>
-                    </div>
+                    {confirmDeleteId === h.id ? (
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Hapus?</span>
+                        <button className="btn btn-sm" style={{ background: 'var(--danger)', color: '#fff', padding: '3px 10px' }}
+                          onClick={() => handleDelete(h.id)}>Ya</button>
+                        <button className="btn btn-secondary btn-sm" style={{ padding: '3px 10px' }}
+                          onClick={() => setConfirmDeleteId(null)}>Batal</button>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button className="btn btn-icon btn-sm" onClick={() => openEdit(h)}><Pencil size={14} /></button>
+                        <button className="btn btn-icon btn-sm" onClick={() => { setConfirmDeleteId(h.id); setDeleteError(''); }}
+                          style={{ color: 'var(--danger)' }}><Trash2 size={14} /></button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}

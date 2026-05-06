@@ -15,6 +15,7 @@ export default function Distribusi() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   const filtered = state.distribusi.filter(d =>
     d.penerima.toLowerCase().includes(search.toLowerCase()) ||
@@ -39,8 +40,9 @@ export default function Distribusi() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Yakin ingin menghapus data distribusi ini?')) return;
-    await dbDeleteDistribusi(dispatch, id);
+    const { error: err } = await dbDeleteDistribusi(dispatch, id);
+    if (err) alert('Gagal menghapus: ' + err.message);
+    setConfirmDeleteId(null);
   };
 
   const toggleStatus = async (d) => {
@@ -104,12 +106,25 @@ export default function Distribusi() {
             <p className="dist-item-berat">⚖️ {d.beratDaging} kg daging</p>
             <p className="dist-item-tanggal">📅 {d.tanggal}</p>
             <div className="dist-item-actions">
-              <button className={`btn btn-sm ${d.status === 'Selesai' ? 'btn-secondary' : 'btn-primary'}`}
-                onClick={() => toggleStatus(d)}>
-                {d.status === 'Selesai' ? 'Tandai Proses' : 'Tandai Selesai'}
-              </button>
-              <button className="btn btn-icon btn-sm" onClick={() => openEdit(d)}><Pencil size={14} /></button>
-              <button className="btn btn-icon btn-sm" onClick={() => handleDelete(d.id)} style={{ color: 'var(--danger)' }}><Trash2 size={14} /></button>
+              {confirmDeleteId === d.id ? (
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Yakin hapus?</span>
+                  <button className="btn btn-sm" style={{ background: 'var(--danger)', color: '#fff', padding: '3px 10px' }}
+                    onClick={() => handleDelete(d.id)}>Ya</button>
+                  <button className="btn btn-secondary btn-sm" style={{ padding: '3px 10px' }}
+                    onClick={() => setConfirmDeleteId(null)}>Batal</button>
+                </div>
+              ) : (
+                <>
+                  <button className={`btn btn-sm ${d.status === 'Selesai' ? 'btn-secondary' : 'btn-primary'}`}
+                    onClick={() => toggleStatus(d)}>
+                    {d.status === 'Selesai' ? 'Tandai Proses' : 'Tandai Selesai'}
+                  </button>
+                  <button className="btn btn-icon btn-sm" onClick={() => openEdit(d)}><Pencil size={14} /></button>
+                  <button className="btn btn-icon btn-sm" onClick={() => setConfirmDeleteId(d.id)}
+                    style={{ color: 'var(--danger)' }}><Trash2 size={14} /></button>
+                </>
+              )}
             </div>
           </div>
         ))}
