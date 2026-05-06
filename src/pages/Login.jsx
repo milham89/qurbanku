@@ -1,18 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useApp } from '../context/AppContext';
-import { Eye, EyeOff, Lock, User } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import './Login.css';
 
-const USERS = [
-  { username: 'admin', password: 'admin123', nama: 'Administrator', role: 'Admin Utama' },
-  { username: 'panitia', password: 'panitia123', nama: 'Panitia Qurban', role: 'Panitia' },
-];
-
 export default function Login() {
-  const { dispatch } = useApp();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ username: '', password: '' });
+  const [form, setForm] = useState({ email: '', password: '' });
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -22,23 +16,21 @@ export default function Login() {
     setError('');
     setLoading(true);
 
-    await new Promise(r => setTimeout(r, 800)); // simulate delay
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: form.email,
+      password: form.password,
+    });
 
-    const user = USERS.find(u => u.username === form.username && u.password === form.password);
-    if (user) {
-      const userData = { nama: user.nama, role: user.role, username: user.username };
-      dispatch({ type: 'LOGIN', payload: userData });
-      localStorage.setItem('qurbanku_auth', JSON.stringify(userData));
-      navigate('/dashboard');
+    if (authError) {
+      setError('Email atau password salah. Pastikan akun sudah dibuat di Supabase.');
     } else {
-      setError('Username atau password salah. Coba: admin / admin123');
+      navigate('/dashboard');
     }
     setLoading(false);
   };
 
   return (
     <div className="login-page">
-      {/* Decorative background */}
       <div className="login-bg">
         <div className="bg-orb bg-orb-1" />
         <div className="bg-orb bg-orb-2" />
@@ -46,14 +38,12 @@ export default function Login() {
       </div>
 
       <div className="login-container">
-        {/* Logo */}
         <div className="login-logo">
           <div className="login-logo-icon">🐑</div>
           <h1 className="login-app-name">Qurbanku</h1>
           <p className="login-app-sub">Sistem Manajemen Qurban Digital</p>
         </div>
 
-        {/* Card */}
         <div className="login-card">
           <div className="login-card-header">
             <h2>Selamat Datang</h2>
@@ -61,20 +51,20 @@ export default function Login() {
           </div>
 
           <form onSubmit={handleSubmit} className="login-form">
-            {/* Username */}
+            {/* Email */}
             <div className="input-group">
-              <label htmlFor="username">Username</label>
+              <label htmlFor="email">Email</label>
               <div className="input-icon-wrap">
-                <User size={16} className="input-icon" />
+                <Mail size={16} className="input-icon" />
                 <input
-                  id="username"
+                  id="email"
                   className="input"
-                  type="text"
-                  placeholder="Masukkan username"
-                  value={form.username}
-                  onChange={e => setForm({ ...form, username: e.target.value })}
+                  type="email"
+                  placeholder="admin@qurbanku.com"
+                  value={form.email}
+                  onChange={e => setForm({ ...form, email: e.target.value })}
                   required
-                  autoComplete="username"
+                  autoComplete="email"
                 />
               </div>
             </div>
@@ -101,34 +91,24 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Error */}
             {error && (
-              <div className="login-error">
-                {error}
-              </div>
+              <div className="login-error">{error}</div>
             )}
 
-            {/* Submit */}
             <button
               id="btn-login"
               type="submit"
               className="btn btn-primary login-submit"
               disabled={loading}
             >
-              {loading ? (
-                <span className="login-spinner" />
-              ) : (
-                <>
-                  <Lock size={16} />
-                  Masuk
-                </>
-              )}
+              {loading ? <span className="login-spinner" /> : <><Lock size={16} /> Masuk</>}
             </button>
           </form>
 
-          <div className="login-hint">
-            <span>Demo: </span>
-            <code>admin</code> / <code>admin123</code>
+          {/* Supabase badge */}
+          <div className="login-hint" style={{ marginTop: '20px' }}>
+            <span>🔒 Ditenagai oleh </span>
+            <strong style={{ color: 'var(--primary)' }}>Supabase Auth</strong>
           </div>
         </div>
 

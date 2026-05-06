@@ -1,5 +1,9 @@
 # Dependencies
 node_modules/
+
+# Environment variables (JANGAN di-push ke GitHub!)
+.env
+.env.local
 .pnp
 .pnp.js
 

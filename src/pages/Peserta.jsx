@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp, dbAddPeserta, dbUpdatePeserta, dbDeletePeserta } from '../context/AppContext';
 import Modal from '../components/Modal';
-import { Plus, Search, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Loader2 } from 'lucide-react';
 
 const emptyForm = { nama: '', telepon: '', alamat: '', jenisQurban: 'Sapi', share: '1/7', idHewan: '', status: 'Aktif' };
 
@@ -11,30 +11,30 @@ export default function Peserta() {
   const [modal, setModal] = useState(false);
   const [editData, setEditData] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   const filtered = state.peserta.filter(p =>
     p.nama.toLowerCase().includes(search.toLowerCase()) ||
-    p.telepon.includes(search)
+    (p.telepon || '').includes(search)
   );
 
-  const openAdd = () => { setEditData(null); setForm(emptyForm); setModal(true); };
-  const openEdit = (p) => { setEditData(p); setForm({ ...p }); setModal(true); };
+  const openAdd = () => { setEditData(null); setForm(emptyForm); setError(''); setModal(true); };
+  const openEdit = (p) => { setEditData(p); setForm({ ...p }); setError(''); setModal(true); };
 
-  const handleSave = () => {
-    if (!form.nama || !form.telepon) return;
-    if (editData) {
-      dispatch({ type: 'UPDATE_PESERTA', payload: { ...form, id: editData.id } });
-    } else {
-      const newId = Math.max(0, ...state.peserta.map(p => p.id)) + 1;
-      dispatch({ type: 'ADD_PESERTA', payload: { ...form, id: newId } });
-    }
+  const handleSave = async () => {
+    if (!form.nama || !form.telepon) { setError('Nama dan telepon wajib diisi.'); return; }
+    setSaving(true);
+    const fn = editData ? dbUpdatePeserta : dbAddPeserta;
+    const { error: err } = await fn(dispatch, editData ? { ...form, id: editData.id } : form);
+    setSaving(false);
+    if (err) { setError(err.message); return; }
     setModal(false);
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm('Yakin ingin menghapus peserta ini?')) {
-      dispatch({ type: 'DELETE_PESERTA', payload: id });
-    }
+  const handleDelete = async (id) => {
+    if (!window.confirm('Yakin ingin menghapus peserta ini?')) return;
+    await dbDeletePeserta(dispatch, id);
   };
 
   const shareOptions = form.jenisQurban === 'Sapi'
@@ -53,7 +53,6 @@ export default function Peserta() {
         </button>
       </div>
 
-      {/* Search */}
       <div className="search-bar">
         <div className="search-input-wrap">
           <Search size={16} className="search-icon" />
@@ -62,20 +61,13 @@ export default function Peserta() {
         </div>
       </div>
 
-      {/* Table */}
       <div className="card" style={{ padding: 0 }}>
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>#</th>
-                <th>Nama Peserta</th>
-                <th>Telepon</th>
-                <th>Alamat</th>
-                <th>Jenis Qurban</th>
-                <th>Share</th>
-                <th>Status</th>
-                <th>Aksi</th>
+                <th>#</th><th>Nama Peserta</th><th>Telepon</th><th>Alamat</th>
+                <th>Jenis Qurban</th><th>Share</th><th>Status</th><th>Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -89,22 +81,13 @@ export default function Peserta() {
                   <td><strong>{p.nama}</strong></td>
                   <td style={{ color: 'var(--text-secondary)' }}>{p.telepon}</td>
                   <td style={{ color: 'var(--text-muted)', fontSize: '13px', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.alamat}</td>
-                  <td>
-                    <span className="badge badge-default">
-                      {p.jenisQurban === 'Sapi' ? '🐄' : '🐑'} {p.jenisQurban}
-                    </span>
-                  </td>
+                  <td><span className="badge badge-default">{p.jenisQurban === 'Sapi' ? '🐄' : '🐑'} {p.jenisQurban}</span></td>
                   <td><span className="badge badge-info">{p.share}</span></td>
                   <td><span className="badge badge-success">{p.status}</span></td>
                   <td>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                      <button className="btn btn-icon btn-sm" onClick={() => openEdit(p)} title="Edit">
-                        <Pencil size={14} />
-                      </button>
-                      <button className="btn btn-icon btn-sm" onClick={() => handleDelete(p.id)} title="Hapus"
-                        style={{ color: 'var(--danger)' }}>
-                        <Trash2 size={14} />
-                      </button>
+                      <button className="btn btn-icon btn-sm" onClick={() => openEdit(p)}><Pencil size={14} /></button>
+                      <button className="btn btn-icon btn-sm" onClick={() => handleDelete(p.id)} style={{ color: 'var(--danger)' }}><Trash2 size={14} /></button>
                     </div>
                   </td>
                 </tr>
@@ -114,7 +97,6 @@ export default function Peserta() {
         </div>
       </div>
 
-      {/* Modal */}
       {modal && (
         <Modal
           title={editData ? 'Edit Peserta' : 'Tambah Peserta Qurban'}
@@ -122,10 +104,13 @@ export default function Peserta() {
           footer={
             <>
               <button className="btn btn-secondary" onClick={() => setModal(false)}>Batal</button>
-              <button id="btn-simpan-peserta" className="btn btn-primary" onClick={handleSave}>Simpan</button>
+              <button id="btn-simpan-peserta" className="btn btn-primary" onClick={handleSave} disabled={saving}>
+                {saving ? <><Loader2 size={14} className="spin" /> Menyimpan...</> : 'Simpan'}
+              </button>
             </>
           }
         >
+          {error && <div className="login-error">{error}</div>}
           <div className="form-grid">
             <div className="input-group full-width">
               <label>Nama Lengkap *</label>
@@ -140,8 +125,7 @@ export default function Peserta() {
             <div className="input-group">
               <label>Status</label>
               <select className="input" value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
-                <option>Aktif</option>
-                <option>Tidak Aktif</option>
+                <option>Aktif</option><option>Tidak Aktif</option>
               </select>
             </div>
             <div className="input-group full-width">
@@ -153,8 +137,7 @@ export default function Peserta() {
               <label>Jenis Qurban *</label>
               <select className="input" value={form.jenisQurban}
                 onChange={e => setForm({ ...form, jenisQurban: e.target.value, share: e.target.value === 'Sapi' ? '1/7' : '1 Ekor' })}>
-                <option>Sapi</option>
-                <option>Kambing</option>
+                <option>Sapi</option><option>Kambing</option>
               </select>
             </div>
             <div className="input-group">

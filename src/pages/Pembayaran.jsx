@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp, dbAddPembayaran, dbUpdatePembayaran } from '../context/AppContext';
 import Modal from '../components/Modal';
-import { Plus, Search, Pencil, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { Plus, Search, Pencil, CheckCircle, Clock, AlertCircle, Loader2 } from 'lucide-react';
 import { formatRupiah } from '../data/mockData';
+import './Pembayaran.css';
 
-const emptyForm = { namaPeserta: '', totalTagihan: '', terbayar: '', status: 'Belum Bayar', metode: 'Transfer Bank', tanggal: new Date().toISOString().slice(0, 10) };
+const emptyForm = { namaPeserta: '', totalTagihan: '', terbayar: '', metode: 'Transfer Bank', tanggal: new Date().toISOString().slice(0, 10) };
 
 export default function Pembayaran() {
   const { state, dispatch } = useApp();
@@ -13,34 +14,36 @@ export default function Pembayaran() {
   const [editData, setEditData] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [filterStatus, setFilterStatus] = useState('Semua');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   const filtered = state.pembayaran.filter(p => {
-    const matchSearch = p.namaPeserta.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = (p.namaPeserta || '').toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus === 'Semua' || p.status === filterStatus;
     return matchSearch && matchStatus;
   });
 
-  const totalPemasukan = state.pembayaran.reduce((s, p) => s + p.terbayar, 0);
-  const totalTagihan = state.pembayaran.reduce((s, p) => s + p.totalTagihan, 0);
+  const totalPemasukan = state.pembayaran.reduce((s, p) => s + Number(p.terbayar || 0), 0);
+  const totalTagihan  = state.pembayaran.reduce((s, p) => s + Number(p.totalTagihan || 0), 0);
   const lunas = state.pembayaran.filter(p => p.status === 'Lunas').length;
 
-  const openAdd = () => { setEditData(null); setForm(emptyForm); setModal(true); };
-  const openEdit = (p) => { setEditData(p); setForm({ ...p }); setModal(true); };
+  const openAdd = () => { setEditData(null); setForm(emptyForm); setError(''); setModal(true); };
+  const openEdit = (p) => { setEditData(p); setForm({ ...p }); setError(''); setModal(true); };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!form.namaPeserta || !form.totalTagihan) { setError('Nama peserta dan total tagihan wajib diisi.'); return; }
+    setSaving(true);
     const total = Number(form.totalTagihan);
-    const bayar = Number(form.terbayar);
+    const bayar = Number(form.terbayar || 0);
     let status = 'Belum Bayar';
     if (bayar >= total) status = 'Lunas';
     else if (bayar > 0) status = 'Cicilan';
 
     const payload = { ...form, totalTagihan: total, terbayar: bayar, status };
-    if (editData) {
-      dispatch({ type: 'UPDATE_PEMBAYARAN', payload: { ...payload, id: editData.id } });
-    } else {
-      const newId = Math.max(0, ...state.pembayaran.map(p => p.id)) + 1;
-      dispatch({ type: 'ADD_PEMBAYARAN', payload: { ...payload, id: newId } });
-    }
+    const fn = editData ? dbUpdatePembayaran : dbAddPembayaran;
+    const { error: err } = await fn(dispatch, editData ? { ...payload, id: editData.id } : payload);
+    setSaving(false);
+    if (err) { setError(err.message); return; }
     setModal(false);
   };
 
@@ -62,7 +65,6 @@ export default function Pembayaran() {
         </button>
       </div>
 
-      {/* Summary Cards */}
       <div className="pembayaran-summary">
         <div className="pay-card">
           <span className="pay-card-label">Total Tagihan</span>
@@ -82,7 +84,6 @@ export default function Pembayaran() {
         </div>
       </div>
 
-      {/* Search & Filter */}
       <div className="search-bar">
         <div className="search-input-wrap">
           <Search size={16} className="search-icon" />
@@ -95,21 +96,13 @@ export default function Pembayaran() {
         ))}
       </div>
 
-      {/* Table */}
       <div className="card" style={{ padding: 0 }}>
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>#</th>
-                <th>Nama Peserta</th>
-                <th>Total Tagihan</th>
-                <th>Terbayar</th>
-                <th>Sisa</th>
-                <th>Status</th>
-                <th>Metode</th>
-                <th>Tanggal</th>
-                <th>Aksi</th>
+                <th>#</th><th>Nama Peserta</th><th>Total Tagihan</th><th>Terbayar</th>
+                <th>Sisa</th><th>Status</th><th>Metode</th><th>Tanggal</th><th>Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -123,16 +116,14 @@ export default function Pembayaran() {
                   <td><strong>{p.namaPeserta}</strong></td>
                   <td>{formatRupiah(p.totalTagihan)}</td>
                   <td style={{ color: 'var(--primary)', fontWeight: 600 }}>{formatRupiah(p.terbayar)}</td>
-                  <td style={{ color: p.totalTagihan - p.terbayar > 0 ? 'var(--danger)' : 'var(--success)' }}>
+                  <td style={{ color: (p.totalTagihan - p.terbayar) > 0 ? 'var(--danger)' : 'var(--success)' }}>
                     {formatRupiah(p.totalTagihan - p.terbayar)}
                   </td>
                   <td>{statusBadge(p.status)}</td>
                   <td style={{ color: 'var(--text-muted)', fontSize: '13px' }}>{p.metode}</td>
                   <td style={{ color: 'var(--text-muted)', fontSize: '13px' }}>{p.tanggal}</td>
                   <td>
-                    <button className="btn btn-icon btn-sm" onClick={() => openEdit(p)} title="Edit">
-                      <Pencil size={14} />
-                    </button>
+                    <button className="btn btn-icon btn-sm" onClick={() => openEdit(p)}><Pencil size={14} /></button>
                   </td>
                 </tr>
               ))}
@@ -141,7 +132,6 @@ export default function Pembayaran() {
         </div>
       </div>
 
-      {/* Modal */}
       {modal && (
         <Modal
           title={editData ? 'Edit Pembayaran' : 'Catat Pembayaran Baru'}
@@ -149,10 +139,13 @@ export default function Pembayaran() {
           footer={
             <>
               <button className="btn btn-secondary" onClick={() => setModal(false)}>Batal</button>
-              <button id="btn-simpan-pembayaran" className="btn btn-primary" onClick={handleSave}>Simpan</button>
+              <button id="btn-simpan-pembayaran" className="btn btn-primary" onClick={handleSave} disabled={saving}>
+                {saving ? <><Loader2 size={14} className="spin" /> Menyimpan...</> : 'Simpan'}
+              </button>
             </>
           }
         >
+          {error && <div className="login-error">{error}</div>}
           <div className="form-grid">
             <div className="input-group full-width">
               <label>Nama Peserta *</label>
@@ -165,7 +158,7 @@ export default function Pembayaran() {
                 onChange={e => setForm({ ...form, totalTagihan: e.target.value })} />
             </div>
             <div className="input-group">
-              <label>Jumlah Terbayar (Rp) *</label>
+              <label>Jumlah Terbayar (Rp)</label>
               <input className="input" type="number" placeholder="0" value={form.terbayar}
                 onChange={e => setForm({ ...form, terbayar: e.target.value })} />
             </div>

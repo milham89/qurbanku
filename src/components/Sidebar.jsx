@@ -4,6 +4,7 @@ import {
   Package, BarChart3, LogOut, Menu, X
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { supabase } from '../lib/supabase';
 import { useState } from 'react';
 import './Sidebar.css';
 
@@ -21,9 +22,9 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     dispatch({ type: 'LOGOUT' });
-    localStorage.removeItem('qurbanku_auth');
     navigate('/login');
   };
 

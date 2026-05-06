@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp, dbAddDistribusi, dbUpdateDistribusi, dbDeleteDistribusi } from '../context/AppContext';
 import Modal from '../components/Modal';
-import { Plus, Search, Pencil, Trash2, CheckCircle, Clock } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, CheckCircle, Clock, Loader2 } from 'lucide-react';
+import './Distribusi.css';
 
 const emptyForm = { penerima: '', kategori: 'Warga', beratDaging: '', status: 'Proses', tanggal: new Date().toISOString().slice(0, 10) };
 const KATEGORI = ['Masjid', 'Warga', 'Sosial', 'Peserta', 'Panitia', 'Lainnya'];
@@ -12,40 +13,39 @@ export default function Distribusi() {
   const [modal, setModal] = useState(false);
   const [editData, setEditData] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   const filtered = state.distribusi.filter(d =>
     d.penerima.toLowerCase().includes(search.toLowerCase()) ||
-    d.kategori.toLowerCase().includes(search.toLowerCase())
+    (d.kategori || '').toLowerCase().includes(search.toLowerCase())
   );
 
-  const totalBerat = state.distribusi.reduce((s, d) => s + Number(d.beratDaging), 0);
+  const totalBerat = state.distribusi.reduce((s, d) => s + Number(d.beratDaging || 0), 0);
   const selesai = state.distribusi.filter(d => d.status === 'Selesai').length;
-  const proses = state.distribusi.filter(d => d.status === 'Proses').length;
+  const proses  = state.distribusi.filter(d => d.status === 'Proses').length;
 
-  const openAdd = () => { setEditData(null); setForm(emptyForm); setModal(true); };
-  const openEdit = (d) => { setEditData(d); setForm({ ...d }); setModal(true); };
+  const openAdd = () => { setEditData(null); setForm(emptyForm); setError(''); setModal(true); };
+  const openEdit = (d) => { setEditData(d); setForm({ ...d }); setError(''); setModal(true); };
 
-  const handleSave = () => {
-    if (!form.penerima || !form.beratDaging) return;
-    const payload = { ...form, beratDaging: Number(form.beratDaging) };
-    if (editData) {
-      dispatch({ type: 'UPDATE_DISTRIBUSI', payload: { ...payload, id: editData.id } });
-    } else {
-      const newId = Math.max(0, ...state.distribusi.map(d => d.id)) + 1;
-      dispatch({ type: 'ADD_DISTRIBUSI', payload: { ...payload, id: newId } });
-    }
+  const handleSave = async () => {
+    if (!form.penerima || !form.beratDaging) { setError('Penerima dan berat daging wajib diisi.'); return; }
+    setSaving(true);
+    const fn = editData ? dbUpdateDistribusi : dbAddDistribusi;
+    const { error: err } = await fn(dispatch, editData ? { ...form, id: editData.id } : form);
+    setSaving(false);
+    if (err) { setError(err.message); return; }
     setModal(false);
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm('Yakin ingin menghapus data distribusi ini?')) {
-      dispatch({ type: 'DELETE_DISTRIBUSI', payload: id });
-    }
+  const handleDelete = async (id) => {
+    if (!window.confirm('Yakin ingin menghapus data distribusi ini?')) return;
+    await dbDeleteDistribusi(dispatch, id);
   };
 
-  const toggleStatus = (d) => {
+  const toggleStatus = async (d) => {
     const newStatus = d.status === 'Selesai' ? 'Proses' : 'Selesai';
-    dispatch({ type: 'UPDATE_DISTRIBUSI', payload: { ...d, status: newStatus } });
+    await dbUpdateDistribusi(dispatch, { ...d, status: newStatus });
   };
 
   return (
@@ -60,7 +60,6 @@ export default function Distribusi() {
         </button>
       </div>
 
-      {/* Summary */}
       <div className="distribusi-summary">
         <div className="dist-card">
           <span>⚖️</span>
@@ -80,7 +79,6 @@ export default function Distribusi() {
         </div>
       </div>
 
-      {/* Search */}
       <div className="search-bar">
         <div className="search-input-wrap">
           <Search size={16} className="search-icon" />
@@ -89,7 +87,6 @@ export default function Distribusi() {
         </div>
       </div>
 
-      {/* Cards Grid */}
       <div className="distribusi-grid">
         {filtered.length === 0 ? (
           <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
@@ -111,19 +108,13 @@ export default function Distribusi() {
                 onClick={() => toggleStatus(d)}>
                 {d.status === 'Selesai' ? 'Tandai Proses' : 'Tandai Selesai'}
               </button>
-              <button className="btn btn-icon btn-sm" onClick={() => openEdit(d)} title="Edit">
-                <Pencil size={14} />
-              </button>
-              <button className="btn btn-icon btn-sm" onClick={() => handleDelete(d.id)} title="Hapus"
-                style={{ color: 'var(--danger)' }}>
-                <Trash2 size={14} />
-              </button>
+              <button className="btn btn-icon btn-sm" onClick={() => openEdit(d)}><Pencil size={14} /></button>
+              <button className="btn btn-icon btn-sm" onClick={() => handleDelete(d.id)} style={{ color: 'var(--danger)' }}><Trash2 size={14} /></button>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Modal */}
       {modal && (
         <Modal
           title={editData ? 'Edit Distribusi' : 'Tambah Data Distribusi'}
@@ -131,10 +122,13 @@ export default function Distribusi() {
           footer={
             <>
               <button className="btn btn-secondary" onClick={() => setModal(false)}>Batal</button>
-              <button id="btn-simpan-distribusi" className="btn btn-primary" onClick={handleSave}>Simpan</button>
+              <button id="btn-simpan-distribusi" className="btn btn-primary" onClick={handleSave} disabled={saving}>
+                {saving ? <><Loader2 size={14} className="spin" /> Menyimpan...</> : 'Simpan'}
+              </button>
             </>
           }
         >
+          {error && <div className="login-error">{error}</div>}
           <div className="form-grid">
             <div className="input-group full-width">
               <label>Nama Penerima *</label>
@@ -155,8 +149,7 @@ export default function Distribusi() {
             <div className="input-group">
               <label>Status</label>
               <select className="input" value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
-                <option>Proses</option>
-                <option>Selesai</option>
+                <option>Proses</option><option>Selesai</option>
               </select>
             </div>
             <div className="input-group">

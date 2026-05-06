@@ -421,3 +421,11 @@ tbody td {
 .font-bold { font-weight: 700; }
 .mt-1 { margin-top: 4px; }
 .mt-2 { margin-top: 8px; }
+
+/* Spin animation */
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
