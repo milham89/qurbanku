@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useApp, dbAddHewan, dbUpdateHewan, dbDeleteHewan } from '../context/AppContext';
 import Modal from '../components/Modal';
+import NumberInput from '../components/NumberInput';
 import { Plus, Search, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { formatRupiah } from '../data/mockData';
 import './Hewan.css';
@@ -163,8 +164,12 @@ export default function Hewan() {
             </div>
             <div className="input-group">
               <label>Harga (Rp) *</label>
-              <input className="input" type="number" placeholder="18000000" value={form.harga}
-                onChange={e => setForm({ ...form, harga: e.target.value })} />
+              <NumberInput
+                prefix="Rp "
+                placeholder="18.000.000"
+                value={form.harga}
+                onChange={val => setForm({ ...form, harga: val })}
+              />
             </div>
             <div className="input-group full-width">
               <label>Keterangan</label>

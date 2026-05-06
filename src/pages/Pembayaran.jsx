@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useApp, dbAddPembayaran, dbUpdatePembayaran } from '../context/AppContext';
 import Modal from '../components/Modal';
+import NumberInput from '../components/NumberInput';
 import { Plus, Search, Pencil, CheckCircle, Clock, AlertCircle, Loader2 } from 'lucide-react';
 import { formatRupiah } from '../data/mockData';
 import './Pembayaran.css';
@@ -154,13 +155,21 @@ export default function Pembayaran() {
             </div>
             <div className="input-group">
               <label>Total Tagihan (Rp) *</label>
-              <input className="input" type="number" placeholder="3000000" value={form.totalTagihan}
-                onChange={e => setForm({ ...form, totalTagihan: e.target.value })} />
+              <NumberInput
+                prefix="Rp "
+                placeholder="3.000.000"
+                value={form.totalTagihan}
+                onChange={val => setForm({ ...form, totalTagihan: val })}
+              />
             </div>
             <div className="input-group">
               <label>Jumlah Terbayar (Rp)</label>
-              <input className="input" type="number" placeholder="0" value={form.terbayar}
-                onChange={e => setForm({ ...form, terbayar: e.target.value })} />
+              <NumberInput
+                prefix="Rp "
+                placeholder="0"
+                value={form.terbayar}
+                onChange={val => setForm({ ...form, terbayar: val })}
+              />
             </div>
             <div className="input-group">
               <label>Metode Pembayaran</label>
