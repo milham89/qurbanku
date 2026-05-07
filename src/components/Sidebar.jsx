@@ -17,7 +17,7 @@ const navItems = [
   { to: '/laporan', icon: BarChart3, label: 'Laporan' },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, onClose }) {
   const { state, dispatch } = useApp();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
@@ -29,18 +29,33 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+    <>
+      {/* Mobile Overlay */}
+      {isOpen && <div className="modal-overlay" style={{ zIndex: 1000 }} onClick={onClose} />}
+
+      <aside className={`sidebar ${collapsed ? 'collapsed' : ''} ${isOpen ? 'open' : ''}`}>
       {/* Logo */}
-      <div className="sidebar-logo">
-        <div className="logo-icon">🐑</div>
+      <div className="sidebar-logo" style={{ justifyContent: collapsed ? 'center' : 'flex-start', padding: collapsed ? '20px 0' : '20px 16px' }}>
+        {!collapsed && <div className="logo-icon">🐑</div>}
+        
         {!collapsed && (
           <div className="logo-text">
             <span className="logo-name">Qurbanku</span>
             <span className="logo-sub">Manajemen Qurban</span>
           </div>
         )}
-        <button className="collapse-btn" onClick={() => setCollapsed(!collapsed)}>
-          {collapsed ? <Menu size={18} /> : <X size={18} />}
+        
+        {/* Toggle Collapse (Desktop) */}
+        <button 
+          className="collapse-btn desktop-only" 
+          onClick={() => setCollapsed(!collapsed)}
+        >
+          {collapsed ? <Menu size={24} /> : <X size={18} />}
+        </button>
+
+        {/* Close Sidebar (Mobile) */}
+        <button className="collapse-btn mobile-only" onClick={onClose}>
+          <X size={18} />
         </button>
       </div>
 
@@ -65,6 +80,7 @@ export default function Sidebar() {
             to={to}
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
             title={collapsed ? label : undefined}
+            onClick={onClose}
           >
             <Icon size={20} />
             {!collapsed && <span>{label}</span>}
@@ -79,5 +95,6 @@ export default function Sidebar() {
         {!collapsed && <span>Keluar</span>}
       </button>
     </aside>
+    </>
   );
 }
