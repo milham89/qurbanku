@@ -112,6 +112,8 @@ body {
   border-radius: var(--radius-lg);
   padding: 24px;
   transition: var(--transition);
+  min-width: 0; /* Penting untuk mencegah Recharts overflow di mobile grid */
+  overflow: hidden;
 }
 
 .card:hover {
