@@ -66,8 +66,16 @@ export default function Laporan() {
         <div className="exec-item">
           <div className="exec-icon">🐄</div>
           <div className="exec-info">
-            <span className="exec-val">{state.hewan.length}</span>
-            <span className="exec-lbl">Total Hewan</span>
+            <span className="exec-val">{state.hewan.filter(h => h.jenis === 'Sapi').length}</span>
+            <span className="exec-lbl">Sapi</span>
+          </div>
+        </div>
+        <div className="exec-divider" />
+        <div className="exec-item">
+          <div className="exec-icon">🐑</div>
+          <div className="exec-info">
+            <span className="exec-val">{state.hewan.filter(h => h.jenis === 'Kambing').length}</span>
+            <span className="exec-lbl">Kambing</span>
           </div>
         </div>
         <div className="exec-divider" />

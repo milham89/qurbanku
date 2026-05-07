@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContext';
 import Sidebar from './components/Sidebar';
@@ -12,12 +13,15 @@ import Laporan from './pages/Laporan';
 
 function ProtectedLayout({ children }) {
   const { state } = useApp();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   if (!state.isAuthenticated) return <Navigate to="/login" replace />;
+
   return (
     <div className="layout">
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="main-content">
-        <Header />
+        <Header onMenuClick={() => setSidebarOpen(true)} />
         <main className="page-content">{children}</main>
       </div>
     </div>

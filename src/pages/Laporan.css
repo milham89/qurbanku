@@ -54,6 +54,34 @@
   gap: 20px;
 }
 
+@media (max-width: 1200px) {
+  .laporan-charts {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .laporan-executive {
+    flex-wrap: wrap;
+    gap: 24px;
+    padding: 24px;
+  }
+  
+  .exec-divider {
+    display: none;
+  }
+  
+  .exec-item {
+    min-width: calc(50% - 12px);
+  }
+}
+
+@media (max-width: 480px) {
+  .exec-item {
+    min-width: 100%;
+  }
+}
+
 .chart-tooltip {
   background: var(--bg-elevated);
   border: 1px solid var(--border);

@@ -1,4 +1,4 @@
-import { Bell, Search } from 'lucide-react';
+import { Bell, Menu } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import './Header.css';
 
@@ -11,7 +11,7 @@ const pageTitles = {
   '/laporan': { title: 'Laporan', sub: 'Rekap & analisis data qurban' },
 };
 
-export default function Header() {
+export default function Header({ onMenuClick }) {
   const location = useLocation();
   const page = pageTitles[location.pathname] || { title: 'Qurbanku', sub: '' };
   const now = new Date();
@@ -20,8 +20,13 @@ export default function Header() {
   return (
     <header className="header">
       <div className="header-left">
-        <h2 className="header-title">{page.title}</h2>
-        <p className="header-sub">{page.sub}</p>
+        <button className="mobile-menu-btn" onClick={onMenuClick}>
+          <Menu size={20} />
+        </button>
+        <div>
+          <h2 className="header-title">{page.title}</h2>
+          <p className="header-sub">{page.sub}</p>
+        </div>
       </div>
       <div className="header-right">
         <span className="header-date">{dateStr}</span>

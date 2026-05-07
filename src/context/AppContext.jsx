@@ -58,18 +58,32 @@ export async function fetchAllData(dispatch) {
 // Helper: ambil user_id dari session aktif
 async function getUserId() {
   const { data: { session } } = await supabase.auth.getSession();
-  return session?.user?.id ?? null;
+  const id = session?.user?.id;
+  if (!id) console.error("Gagal mendapatkan User ID: Session tidak ditemukan");
+  return id;
 }
 
 // Hewan
 export async function dbAddHewan(dispatch, data) {
   const { nama, jenis, berat, harga, status, keterangan } = data;
   const user_id = await getUserId();
+  
+  if (!user_id) return { error: { message: "Sesi Anda habis. Silakan login kembali." } };
+
   const { data: result, error } = await supabase
     .from('hewan')
-    .insert([{ nama, jenis, berat: Number(berat), harga: Number(harga), status, keterangan, user_id }])
+    .insert([{ 
+      nama, 
+      jenis, 
+      berat: Number(berat), 
+      harga: Number(harga), 
+      status, 
+      keterangan, 
+      user_id 
+    }])
     .select()
     .single();
+    
   if (!error && result) dispatch({ type: 'ADD_HEWAN', payload: result });
   return { error };
 }
@@ -96,11 +110,24 @@ export async function dbDeleteHewan(dispatch, id) {
 export async function dbAddPeserta(dispatch, data) {
   const { nama, telepon, alamat, jenisQurban, share, idHewan, status } = data;
   const user_id = await getUserId();
+  
+  if (!user_id) return { error: { message: "Sesi Anda habis. Silakan login kembali." } };
+
   const { data: result, error } = await supabase
     .from('peserta')
-    .insert([{ nama, telepon, alamat, jenis_qurban: jenisQurban, share, id_hewan: idHewan || null, status, user_id }])
+    .insert([{ 
+      nama, 
+      telepon, 
+      alamat, 
+      jenis_qurban: jenisQurban, 
+      share, 
+      id_hewan: idHewan || null, 
+      status, 
+      user_id 
+    }])
     .select()
     .single();
+    
   if (!error && result) dispatch({ type: 'ADD_PESERTA', payload: mapPeserta(result) });
   return { error };
 }
@@ -127,11 +154,23 @@ export async function dbDeletePeserta(dispatch, id) {
 export async function dbAddPembayaran(dispatch, data) {
   const { namaPeserta, totalTagihan, terbayar, status, metode, tanggal } = data;
   const user_id = await getUserId();
+  
+  if (!user_id) return { error: { message: "Sesi Anda habis. Silakan login kembali." } };
+
   const { data: result, error } = await supabase
     .from('pembayaran')
-    .insert([{ nama_peserta: namaPeserta, total_tagihan: Number(totalTagihan), terbayar: Number(terbayar), status, metode, tanggal, user_id }])
+    .insert([{ 
+      nama_peserta: namaPeserta, 
+      total_tagihan: Number(totalTagihan), 
+      terbayar: Number(terbayar), 
+      status, 
+      metode, 
+      tanggal, 
+      user_id 
+    }])
     .select()
     .single();
+    
   if (!error && result) dispatch({ type: 'ADD_PEMBAYARAN', payload: mapPembayaran(result) });
   return { error };
 }
@@ -152,11 +191,22 @@ export async function dbUpdatePembayaran(dispatch, data) {
 export async function dbAddDistribusi(dispatch, data) {
   const { penerima, kategori, beratDaging, status, tanggal } = data;
   const user_id = await getUserId();
+  
+  if (!user_id) return { error: { message: "Sesi Anda habis. Silakan login kembali." } };
+
   const { data: result, error } = await supabase
     .from('distribusi')
-    .insert([{ penerima, kategori, berat_daging: Number(beratDaging), status, tanggal, user_id }])
+    .insert([{ 
+      penerima, 
+      kategori, 
+      berat_daging: Number(beratDaging), 
+      status, 
+      tanggal, 
+      user_id 
+    }])
     .select()
     .single();
+    
   if (!error && result) dispatch({ type: 'ADD_DISTRIBUSI', payload: mapDistribusi(result) });
   return { error };
 }

@@ -80,6 +80,24 @@
   background: var(--primary-glow);
 }
 
+.mobile-only {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-only {
+    display: flex;
+  }
+  .desktop-only {
+    display: none;
+  }
+  
+  .sidebar.open {
+    transform: translateX(0);
+    width: 280px !important;
+  }
+}
+
 /* User */
 .sidebar-user {
   display: flex;
